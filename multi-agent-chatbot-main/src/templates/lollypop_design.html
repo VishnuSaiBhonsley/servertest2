@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot Component</title>
+  <link rel="stylesheet" href="static/lollypop_design.css">
+</head>
+<body>
+
+  <button class="toggle-chatbot" onclick="toggleChatbot()">Chat</button>
+
+  <div class="chat-container" id="chat-container">
+    <img 
+      src="https://lollypop.design/wp-content/uploads/2023/01/Web-favicon.png" 
+      alt="Chatbot Logo" 
+      class="chat-logo"
+    >
+    <div class="chat-box" id="chat-box"></div>
+    <div class="chat-options" id="chat-options"></div>
+    <div class="chat-input">
+      <input type="text" id="user-input" placeholder="Type a message..." onkeypress="handleKeyPress(event)">
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script src="static/lollypop_design.js"></script>
+</body>
+</html>
