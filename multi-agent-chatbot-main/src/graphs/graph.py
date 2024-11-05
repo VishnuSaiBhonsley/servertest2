@@ -56,6 +56,7 @@ class Supervisor:
         name = state.get("name", None)
         email = state.get("email", None)
         self.status = self.chain.invoke({"question":question, "name":name, "email":email})
+        self.status = self.status.strip()
         response_msg = HumanMessage(content=question)
         return {'messages':[response_msg]}
 
