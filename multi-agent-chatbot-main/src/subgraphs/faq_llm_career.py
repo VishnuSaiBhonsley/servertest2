@@ -53,8 +53,6 @@ class FAQLLMSubgraph:
         self.search_obj.load_faq_data()      # load the faq data on startup
         self.tool_obj = CareerToolNode(career_page_url, llm)
 
-
-
     # condition and routing functions
     def llm_free(self, state):
 
@@ -89,7 +87,7 @@ class FAQLLMSubgraph:
         messages = state['messages']
         question = messages[-1].content
         output = rag_chain.invoke({"question": question})
-        output = output.split()[0]
+        output = output.strip()
 
         return output
 
@@ -100,18 +98,18 @@ class FAQLLMSubgraph:
         # Add nodes
         workflow.add_node('llm_agent', self.llm_obj.rag_agent_run)
         workflow.add_node('llm_free', self.llm_free)
-        workflow.add_node('career_tool', self.tool_obj._run_search_jobs)
+        # workflow.add_node('career_tool', self.tool_obj._run_search_jobs)
 
         # Add edges
-        # workflow.add_edge(START, "llm_free")
-        workflow.add_conditional_edges(
-            START,
-            self.tool_condition,
-            {
-                "yes": "career_tool",
-                "no": "llm_free",
-            },
-        )
+        workflow.add_edge(START, "llm_free")
+        # workflow.add_conditional_edges(
+        #     START,
+        #     self.tool_condition,
+        #     {
+        #         "yes": "career_tool",
+        #         "no": "llm_free",
+        #     },
+        # )
         workflow.add_conditional_edges(
             "llm_free",
             self.route_to_llm,
@@ -120,14 +118,12 @@ class FAQLLMSubgraph:
                 "no": END,
             },
         )
-        workflow.add_edge("career_tool", END)
+        # workflow.add_edge("career_tool", END)
         workflow.add_edge("llm_agent", END)
 
         memory = MemorySaver()
         graph = workflow.compile(checkpointer=memory)
         return graph
-
-
 
 
 if __name__ == "__main__":

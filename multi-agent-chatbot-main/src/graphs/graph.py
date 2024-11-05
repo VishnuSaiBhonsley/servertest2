@@ -20,10 +20,13 @@ from dotenv import load_dotenv
 sys.path.append(os.getcwd())
 from src.subgraphs.ServiceInformation.ServiceInformation_subgraph import ServiceInformationSubgraph
 from src.subgraphs.faq_llm_career import FAQLLMSubgraph
+from src.tools.careers import CareerToolNode
 from src.all_prompts import supervisor_prompt
 
 # Load environment variables
 load_dotenv()
+
+career_page_url = "https://lollypop.design/careers/"
 
 class OverallState(MessagesState):
     # messages is implicit
@@ -75,7 +78,8 @@ class Supervisor:
 
 class LollypopDesignGraph:
     def __init__(self):
-        llm = ChatCohere(model='command-r-plus-08-2024')
+        # llm = ChatCohere(model='command-r-plus-08-2024')
+        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
 
         # Node creations
@@ -88,7 +92,9 @@ class LollypopDesignGraph:
         faq_subgraph = FAQLLMSubgraph(llm, embeddings)
         self.faq_node = faq_subgraph.faq_llm_career_build_graph()
 
-        self.llm_free_options = []
+        career_tool = CareerToolNode(career_page_url, llm)
+        self.career_node = career_tool._run_search_jobs
+
     
 
     def build_graph(self):
@@ -96,11 +102,13 @@ class LollypopDesignGraph:
         graph_builder.add_node("supervisor_node", self.supervisor_node)
         graph_builder.add_node("introduction_node", self.service_info_node)
         graph_builder.add_node("faq_llm_node", self.faq_node)
+        graph_builder.add_node("career_node", self.career_node)
 
         graph_builder.add_edge(START, "supervisor_node")
         graph_builder.add_conditional_edges("supervisor_node", self.supervisor_agent.get_next_node)
         graph_builder.add_edge("introduction_node", END)
         graph_builder.add_edge("faq_llm_node", END)
+        graph_builder.add_edge("career_node", END)
 
         memory = MemorySaver()
         self.graph = graph_builder.compile(checkpointer=memory)
@@ -108,6 +116,7 @@ class LollypopDesignGraph:
 
     def run_graph(self, user_input, session_id):
         config = {"configurable": {"thread_id": session_id}}
+        llm_free_options = []
         inputs = {
             "messages": [
                 ("user", user_input),
@@ -117,14 +126,13 @@ class LollypopDesignGraph:
         output = self.graph.invoke(inputs, config)
         chatbot_answer = output['messages'][-1].content
         if 'options' in output:
-            self.llm_free_options = output['options']
+            llm_free_options = output['options']
 
-        return {"chatbot_answer": chatbot_answer, "llm_free_options": self.llm_free_options}
-
+        return {"chatbot_answer": chatbot_answer, "llm_free_options": llm_free_options}
 
 
 if __name__ == "__main__":
-    lollypop_design = LollypopDesignGraph(session_id = "1")
+    lollypop_design = LollypopDesignGraph()
     lollypop_design.build_graph()
 
     while True:
@@ -133,14 +141,12 @@ if __name__ == "__main__":
             print("Goodbye!")
             break
 
-        output = lollypop_design.run_graph(user_input)
+        output = lollypop_design.run_graph(user_input, session_id = "1")
         print("AI bot: ", output["chatbot_answer"])
-        print("output", output)
         if 'llm_free_options' in output:
             print("LLM-free options: ", output['llm_free_options'])
         print("***************************")
 
     # uncomment to view the graph
-    # with open("graph.png", "wb") as png:
-    #     png.write(graph.get_graph(xray=1).draw_mermaid_png())
-
+    with open("graph_career.png", "wb") as png:
+        png.write(lollypop_design.graph.get_graph(xray=1).draw_mermaid_png())

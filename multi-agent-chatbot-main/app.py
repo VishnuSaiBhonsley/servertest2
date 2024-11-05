@@ -5,10 +5,12 @@ import sys,os
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
+
 # Global variable for client_id
 client_id = None
-sys.path.append(os.getcwd())
 from src.graphs.graph import *
+lollypop_design = LollypopDesignGraph()
+lollypop_design.build_graph()
 
 @app.route('/getresponses', methods=['POST'])
 def get_responses():
@@ -61,6 +63,4 @@ def terralogic_academy():
 
 if __name__ == "__main__":
     # Initialize the LollypopDesignGraph instance with session ID
-    lollypop_design = LollypopDesignGraph()
-    lollypop_design.build_graph()
     app.run(debug=True)
