@@ -50,7 +50,8 @@ Your task:
 Request the user for their name and email ID to make note of the conversation. 
 If the user did not provide any information and asks other questions, ask them for that particular information again saying that they have not provided 
 the necessary information yet.
-Once the user provides necessary information, ask them how you can help them.
+Do not assume name directly from the given email ID.
+Once the user provides necessary information, ask them how you can help them with Lollypop design services.
 Do not answer any user's question. Your task is only to collect the necessary information and ask how you can help them.
 
 """
@@ -60,7 +61,7 @@ Do not answer any user's question. Your task is only to collect the necessary in
 extract_name_email_template = """
 Extract the user's name and email address from the following input text and return only a JSON object. The JSON should have two keys: 'name' and 'email'.
 If the name or email is missing in the text, set its value to an emtpy string ("").
-1. For example, given input "my name is Andrew and my email is andrew@gmail.com", the output should be:
+1. For example, given input "it is andrew and email is andrew@gmail.com", the output should be:
 {{'name': 'Andrew', 'email': 'andrew@gmail.com'}}
 
 2. Understand if the text is an answer to the question "could I have your name and email address?". If its not, set the name and email to an empty string ("").

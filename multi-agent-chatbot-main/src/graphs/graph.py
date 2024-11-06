@@ -11,7 +11,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain.schema import HumanMessage
+from langchain.schema import HumanMessage, AIMessage
 
 import os
 import sys
@@ -41,7 +41,7 @@ class Supervisor:
 
     def __init__(self, llm):
         self.llm = llm
-        self.next_node = END
+        self.next_node = "fallback_node"
         self.status = ""
         prompt = PromptTemplate(
             template = supervisor_prompt,
@@ -59,6 +59,12 @@ class Supervisor:
         self.status = self.status.strip()
         response_msg = HumanMessage(content=question)
         return {'messages':[response_msg]}
+    
+    def fallback(self, state):
+
+        fallback_msg = "Sorry I didn't get that. Could you please repeat it?"
+        fallback_response = AIMessage(content=fallback_msg)
+        return {'messages':[fallback_response]}
 
     def get_next_node(self, state):
 
@@ -67,7 +73,7 @@ class Supervisor:
         elif self.status == "answering":
             self.next_node = "faq_llm_node"
         else:
-            self.next_node = END
+            self.next_node = "fallback_node"
         return self.next_node
     
 
@@ -80,7 +86,7 @@ class Supervisor:
 class LollypopDesignGraph:
     def __init__(self):
         # llm = ChatCohere(model='command-r-plus-08-2024')
-        llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
+        llm = ChatCohere(model='command-r-plus-08-2024')
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         decision_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"))
         
@@ -89,14 +95,16 @@ class LollypopDesignGraph:
         self.supervisor_agent = Supervisor(decision_llm)
         self.supervisor_node = self.supervisor_agent.understand
 
-        service_info_subgraph = ServiceInformationSubgraph(llm)
+        service_info_subgraph = ServiceInformationSubgraph(llm, decision_llm)
         self.service_info_node = service_info_subgraph.IntroductionNode
 
         faq_subgraph = FAQLLMSubgraph(llm, decision_llm, embeddings)
         self.faq_node = faq_subgraph.faq_llm_career_build_graph()
 
-        career_tool = CareerToolNode(career_page_url, llm)
+        career_tool = CareerToolNode(career_page_url, decision_llm)
         self.career_node = career_tool._run_search_jobs
+
+        self.fallback_node = self.supervisor_agent.fallback
 
     
 
@@ -106,12 +114,14 @@ class LollypopDesignGraph:
         graph_builder.add_node("introduction_node", self.service_info_node)
         graph_builder.add_node("faq_llm_node", self.faq_node)
         graph_builder.add_node("career_node", self.career_node)
+        graph_builder.add_node("fallback_node", self.fallback_node)
 
         graph_builder.add_edge(START, "supervisor_node")
         graph_builder.add_conditional_edges("supervisor_node", self.supervisor_agent.get_next_node)
         graph_builder.add_edge("introduction_node", END)
         graph_builder.add_edge("faq_llm_node", END)
         graph_builder.add_edge("career_node", END)
+        graph_builder.add_edge("fallback_node", END)
 
         memory = MemorySaver()
         self.graph = graph_builder.compile(checkpointer=memory)

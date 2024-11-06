@@ -42,8 +42,9 @@ class UserInformation(BaseModel):
 
 # helper function for content extraction
 class ServiceInformationSubgraph:
-    def __init__(self, llm):
+    def __init__(self, llm, decision_llm):
         self.llm = llm
+        self.decision_llm = decision_llm
 
     def NameAndEmailParser(self, user_response: str):
         ##### name and email extraction #####
@@ -57,7 +58,7 @@ class ServiceInformationSubgraph:
         # print("ServiceInformationNode -- extractor prompt")
         prompt = PromptTemplate(template=prompts.extract_name_email_template, input_variables=["text"])
         # print(prompt)
-        chain = prompt | self.llm | JsonOutputParser()   
+        chain = prompt | self.decision_llm | JsonOutputParser()   
 
         # print("User response on which extraction is going to run")
         # print(user_response)
