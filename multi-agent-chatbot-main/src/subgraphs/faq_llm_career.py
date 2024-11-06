@@ -44,8 +44,9 @@ class AgentState(TypedDict):
     options: List[str]
 
 class FAQLLMSubgraph:
-    def __init__(self, llm, embeddings):
+    def __init__(self, llm, decision_llm, embeddings):
         self.llm = llm
+        self.decision_llm = decision_llm
         self.embeddings = embeddings
         # initialize LLM, search, career nodes
         self.llm_obj = LLMNode(self.llm, self.embeddings, vectorstore_path, URL)
@@ -83,7 +84,7 @@ class FAQLLMSubgraph:
             input_variables=["question"],
         )
 
-        rag_chain = prompt | self.llm | StrOutputParser()
+        rag_chain = prompt | self.decision_llm | StrOutputParser()
         messages = state['messages']
         question = messages[-1].content
         output = rag_chain.invoke({"question": question})

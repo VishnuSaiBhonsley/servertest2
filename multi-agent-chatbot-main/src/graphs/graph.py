@@ -82,15 +82,17 @@ class LollypopDesignGraph:
         # llm = ChatCohere(model='command-r-plus-08-2024')
         llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0)
         embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        decision_llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=os.getenv("GOOGLE_API_KEY"))
+        
 
         # Node creations
-        self.supervisor_agent = Supervisor(llm)
+        self.supervisor_agent = Supervisor(decision_llm)
         self.supervisor_node = self.supervisor_agent.understand
 
         service_info_subgraph = ServiceInformationSubgraph(llm)
         self.service_info_node = service_info_subgraph.IntroductionNode
 
-        faq_subgraph = FAQLLMSubgraph(llm, embeddings)
+        faq_subgraph = FAQLLMSubgraph(llm, decision_llm, embeddings)
         self.faq_node = faq_subgraph.faq_llm_career_build_graph()
 
         career_tool = CareerToolNode(career_page_url, llm)
@@ -142,12 +144,13 @@ if __name__ == "__main__":
             print("Goodbye!")
             break
 
-        output = lollypop_design.run_graph(user_input, session_id = "1")
+        output = lollypop_design.run_graph(user_input, session_id = "abc")
         print("AI bot: ", output["chatbot_answer"])
         if 'llm_free_options' in output:
             print("LLM-free options: ", output['llm_free_options'])
         print("***************************")
 
     # uncomment to view the graph
-    with open("graph_career.png", "wb") as png:
-        png.write(lollypop_design.graph.get_graph(xray=1).draw_mermaid_png())
+    # with open("graph_career.png", "wb") as png:
+    #     png.write(lollypop_design.graph.get_graph(xray=1).draw_mermaid_png())
+
