@@ -3,51 +3,40 @@ const chatBox = document.getElementById("chat-box");
 const chatOptions = document.getElementById("chat-options");
 const userInput = document.getElementById("user-input");
 
-// Initialize a variable to store the section ID
-let sectionId = "";
-
-// List to track previously selected user inputs
+let session_id = "";
 let userSelectedOptions = [];
+let botResponses = {};
 
-// Function to generate a random section ID
-function generateSectionId() {
-  return 'section-' + Math.random().toString(36).substr(2, 9); // Generates a random alphanumeric ID
+// Generate a random section ID
+function generatesession_id() {
+  return 'section-' + Math.random().toString(36).substr(2, 9);
 }
 
-// Ensure section ID is generated when the chatbot opens
+// Initialize chatbot section ID
 function initializeChatbot() {
-  if (!sectionId) {
-    sectionId = generateSectionId(); // Generate and assign section ID
-    console.log("Section ID generated:", sectionId); // Debugging log
+  if (!session_id) {
+    session_id = generatesession_id();
+    console.log("Section ID generated:", session_id);
   }
 }
 
-// Fetch predefined bot responses with keywords
-let botResponses = {};
-
-// Function to fetch bot responses (now corrected to be asynchronous)
+// Fetch bot responses
 async function fetchBotResponses(userText) {
   try {
-    const response = await fetch('/getresponses', { // Update to your API endpoint
+    const response = await fetch('/getresponses', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        user_input: userText,
-        client_id:'lollypop_academy', // Corrected typo from userTex to userText
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_input: userText, client_id: 'terralogic_academy',session_id:session_id })
     });
     
     if (!response.ok) throw new Error('Failed to fetch responses');
-    
-    botResponses = await response.json(); // Await the JSON response
+    botResponses = await response.json();
   } catch (error) {
     console.error('Error fetching bot responses:', error);
   }
 }
 
-// Function to add a message to the chat
+// Add message to the chat
 function addMessage(sender, text) {
   const messageElement = document.createElement("div");
   messageElement.classList.add("chat-message", sender);
@@ -56,13 +45,10 @@ function addMessage(sender, text) {
   scrollToBottom();
 }
 
-// Function to show button options for user to select
+// Show options for user selection
 function showOptions(options) {
-  chatOptions.innerHTML = ""; // Clear previous options
-
-  // Filter options to exclude those that have already been selected
+  chatOptions.innerHTML = "";
   const filteredOptions = options.filter(option => !userSelectedOptions.includes(option));
-
   filteredOptions.forEach(option => {
     const button = document.createElement("button");
     button.classList.add("option-button");
@@ -72,125 +58,68 @@ function showOptions(options) {
   });
 }
 
-// Handle button click and bot reply
+// Handle button click for user options
 async function handleOptionClick(option) {
   addMessage("user", option);
-  chatOptions.innerHTML = ""; // Hide options after user clicks one
-
-  // Add the selected option to the list of user-selected options
+  chatOptions.innerHTML = "";
   userSelectedOptions.push(option);
-
-  await fetchBotResponses(option.toLowerCase()); // Await fetch response
+  await fetchBotResponses(option.toLowerCase());
   botReply(option.toLowerCase());
 }
 
-// Function to handle user-typed message
+// Handle user-typed message
 async function sendMessage() {
   const userText = userInput.value.trim().toLowerCase();
-  if (userText === "") return;
+  if (!userText) return;
 
   addMessage("user", userText);
-  userInput.value = ""; // Clear input field
-
-  // Add the typed message to the list of user-selected options
+  userInput.value = "";
   userSelectedOptions.push(userText);
-
-  await fetchBotResponses(userText); // Await the response from fetchBotResponses
-
-  // Check for matches with keywords in botResponses
-  const matchedOptions = Object.keys(botResponses).filter(key => userText.includes(key));
-
-  if (matchedOptions.length > 0) {
-    // If there's a match, respond with the first match found
-    botReply(matchedOptions[0]);
-  } else {
-    // If no matches, make an HTTP request
-    await makeHttpRequest(userText); // Await the request
-  }
+  await fetchBotResponses(userText);
+  botReply(userText);
 }
 
-// Handle pressing Enter key
-function handleKeyPress(event) {
-  if (event.key === "Enter") {
-    sendMessage();
-  }
-}
-
-// Function to generate bot reply based on user input
+// Bot reply function
 function botReply(userText) {
   const typingIndicator = createTypingAnimation();
   chatBox.appendChild(typingIndicator);
+
   setTimeout(() => {
-    // Check for predefined responses
     const botResponse = botResponses[userText];
-
+    removeTypingAnimation(typingIndicator);
     if (botResponse) {
-      removeTypingAnimation(typingIndicator);
       addMessage("bot", botResponse.response);
-
-      // If there are options, show them
       if (botResponse.options && botResponse.options.length > 0) {
         showOptions(botResponse.options);
       }
     } else {
       addMessage("bot", "I didn't understand that. Could you please rephrase?");
     }
-  }, 1000); // Simulate bot thinking time
+  }, 1000);
 }
 
-// Function to make HTTP request for user input
-async function makeHttpRequest(userText) {
-  // Ensure section ID is generated
-  if (!sectionId) {
-    sectionId = generateSectionId(); // Generate and assign section ID if not already generated
-  }
-
-  const typingIndicator = createTypingAnimation();
-  chatBox.appendChild(typingIndicator);
-
-  try {
-    const response = await fetch('/ask', { // Update to your API endpoint
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ 
-        user_input: userText,
-        section_id: sectionId, // Pass the section ID with the request
-        client_id:'lollypop_academy', 
-        model_choice: "google" // Corrected typo from "gogle"
-      }),
-    });
-
-    // Check if the response is OK
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
+// Toggle chatbot visibility
+function toggleChatbot() {
+  if (chatContainer.classList.contains("slideIn")) {
+    chatContainer.classList.replace("slideIn", "slideOut");
+    setTimeout(() => {
+      chatContainer.style.display = "none";
+      chatContainer.classList.remove("slideOut");
+    }, 400);
+  } else {
+    chatContainer.style.display = "flex";
+    chatContainer.classList.add("slideIn");
+    if (!chatContainer.querySelector(".chat-logo")) {
+      const logo = document.createElement("img");
+      logo.src = "https://terralogic.com/wp-content/uploads/2022/12/favicon.png";
+      logo.alt = "Chatbot Logo";
+      logo.className = "chat-logo";
+      chatContainer.insertBefore(logo, chatContainer.firstChild);
     }
-
-    // Convert the response to JSON
-    const data = await response.json();
-
-    // Access the 'response' property correctly
-    if (data.response) {
-      removeTypingAnimation(typingIndicator);
-      addMessage("bot", data.response); // Display the bot's response
-
-      // Show the first option by default if available in botResponses
-      const options = botResponses[Object.keys(botResponses)[0]].options;
-      if (options && options.length > 0) {
-        showOptions(options); // Display options
-      }
-    } else {
-      removeTypingAnimation(typingIndicator);
-      addMessage("bot", "I did not get a valid response from the server.");
-    }
-  } catch (error) {
-    removeTypingAnimation(typingIndicator);
-    console.error('Error:', error); // Log the error for debugging
-    addMessage("bot", "Sorry, I could not reach the server. Please try again later.");
   }
 }
 
+// Create typing animation
 function createTypingAnimation() {
   const typingIndicator = document.createElement("div");
   typingIndicator.classList.add("typing-indicator");
@@ -198,46 +127,20 @@ function createTypingAnimation() {
   return typingIndicator;
 }
 
+// Remove typing animation
 function removeTypingAnimation(typingIndicator) {
-  // Remove the specific typing animation element
-  if (typingIndicator) {
-    typingIndicator.remove();
-  }
+  if (typingIndicator) typingIndicator.remove();
 }
 
-// Scroll to the bottom of the chat
+// Scroll to bottom of chat
 function scrollToBottom() {
-  chatBox.scrollTo({
-    top: chatBox.scrollHeight, // Scroll to the bottom
-    behavior: "smooth" // Add smooth scrolling animation
-  });
+  chatBox.scrollTo({ top: chatBox.scrollHeight, behavior: "smooth" });
 }
 
-// Toggle chatbot visibility
-function toggleChatbot() {
-  if (chatContainer.classList.contains("slideIn")) {
-    // Hide the chat container with animation
-    chatContainer.classList.remove("slideIn");
-    chatContainer.classList.add("slideOut");
-
-    setTimeout(() => {
-      chatContainer.style.display = "none";
-      chatContainer.classList.remove("slideOut");
-    }, 300); 
-
-    parent.postMessage({ action: "collapse" }, "*");
-  } else {
-    // Show the chat container with animation
-    chatContainer.classList.remove("slideOut"); // Remove slideOut if it's there
-    chatContainer.style.display = "flex"; 
-    chatContainer.classList.add("slideIn");
-
-    parent.postMessage({ action: "expand" }, "*");
-  }
-}
-
-// Initialize the chatbot on load
+// Initialize chatbot on load
 initializeChatbot();
 
 // Event listener for Enter key
-userInput.addEventListener("keypress", handleKeyPress);
+userInput.addEventListener("keypress", (event) => {
+  if (event.key === "Enter") sendMessage();
+});
