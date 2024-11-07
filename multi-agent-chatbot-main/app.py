@@ -18,7 +18,9 @@ def get_responses():
         global client_id
         client_id = request.json.get('client_id')
         user_input = request.json.get('user_input')
+        print(user_input)
         session_id=request.json.get('session_id')
+        print(session_id)
         
         # Run graph function from LollypopDesignGraph instance
         output = lollypop_design.run_graph(user_input,session_id=session_id)

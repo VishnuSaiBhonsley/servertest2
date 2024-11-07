@@ -36,6 +36,7 @@ async function fetchBotResponses(userText) {
       body: JSON.stringify({ 
         user_input: userText,
         client_id: 'lollypop_design',
+        session_id: sectionId,
       }),
     });
     
