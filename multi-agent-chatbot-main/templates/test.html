@@ -1,0 +1,60 @@
+<div id="iframe-container">
+    <script>
+        const iframeContainer = document.getElementById("iframe-container");
+        const iframeSrc = "http://127.0.0.1:5000/lollypop_design";
+
+        // Function to check if the iframe source URL is reachable
+        function checkIframeSrc(url) {
+        return fetch(url, { method: 'HEAD' })
+            .then(response => response.ok)
+            .catch(() => false);
+        }
+
+        // Check the URL before adding the iframe
+        checkIframeSrc(iframeSrc).then(isReachable => {
+        if (isReachable) {
+            // Create the iframe element if the URL is reachable
+            const iframe = document.createElement("iframe");
+            iframe.id = "chatbot-iframe";
+            iframe.src = iframeSrc;
+            iframe.style = "width: 90px; height: 60px; border: none; position: fixed; bottom: 30px; right: 25px; z-index: 800; border-radius: 10px;";
+            iframeContainer.appendChild(iframe);
+
+                  // Listen for messages from the iframe to expand or collapse
+            window.addEventListener("message", function(event) {
+            const iframe = document.getElementById("chatbot-iframe");
+    
+            if (event.data.action === "expand") {
+            // Expand the iframe to show the full chatbot
+            iframe.style.width = "336px";
+            iframe.style.height = "670px";
+            iframe.style.borderRadius = "10px"; // Adjust border-radius for the expanded state
+            iframe.style.transition =  "all 0s linear";
+            } else if (event.data.action === "collapse") {
+            // Collapse the iframe to its initial small state
+            iframe.style.width = "90px";
+            iframe.style.height = "60px";
+            iframe.style.borderRadius = "10px"; // Reset border-radius for the collapsed state
+            iframe.style.transition = " width 0s ease, height 0s ease, border-radius 0s ease";
+            iframe.style.transitionDelay = "0.5s";
+            }
+        });
+        } else {
+            console.error("Iframe source is not reachable. The iframe will not be displayed.");
+        }
+        });
+
+        // Function to get query parameter value
+        function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
+        }
+
+        // Apply background color from the query parameter if provided
+        const bgColor = getQueryParam('bgColor');
+        if (bgColor) {
+        document.body.style.backgroundColor = bgColor;
+        }
+    </script>
+</div>
+

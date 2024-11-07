@@ -10,5 +10,3 @@ sentence_transformers
 python-docx
 faiss-cpu
 langchain-cohere
-Flask
-flask_cors
